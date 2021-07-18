@@ -6,14 +6,14 @@ db = client['basa_job_sj_hh']
 jobs = db.jobs
 
 # сортировка
-pay_from = int(input("Введите сумму:"))
-result = jobs.find({'макс зарплата':{'$gt':pay_from}},{'вакансия':True, 'кампания': True,'ссылка на вакансию':True, 'макс зарплата':True, '_id':False}) # '$gt' значит > , '$lt' значит <, '$gte'
+def pay_from():
+    pay_user = int(input("Введите сумму:"))
+    # result = jobs.find({'макс зарплата':{'$gt':pay_user}},{'вакансия':True, 'кампания': True,'ссылка на вакансию':True, 'макс зарплата':True, '_id':False}) # '$gt' значит > , '$lt' значит <, '$gte'
+    result = jobs.find({'$or':[{'мин зарплата':{'$gt':pay_user}},{'макс зарплата':{'$gt':pay_user}}]})
+    for user in result:
+        pprint(user)
 
-for user in result:
-    pprint(user)
+if __name__ == '__main__':
+    pay_from()
 
-# только новые вакансии с сайта, можно через upsert=True
-# def value_unique(our_dict):
-#     for vacancy_new in our_dict:
-#         jobs.update(vacancy, vacancy_new, upsert=True)
 

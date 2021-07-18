@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup as bs
 import requests
 from time import sleep
 from pymongo import MongoClient
+from pprint import pprint
 
 
 class HHscraper:
@@ -12,8 +13,7 @@ class HHscraper:
         self.start_params = params
         self.db = db_client['basa_job_sj_hh']
         self.jobs = self.db.jobs
-        self.info_vacance = []
-
+        # self.info_vacance = []
 
     def get_html_string(self, url, headers='', params=''):
         try:
@@ -32,7 +32,7 @@ class HHscraper:
 
     def run(self):
         next_butten_hh = ''
-        while  next_butten_hh != None:
+        while next_butten_hh != None:
             if next_butten_hh == '':
                 html_string = self.get_html_string(self.start_url + '/search/vacancy', self.start_headers,
                                                    self.start_params)
@@ -46,7 +46,7 @@ class HHscraper:
                 next_butten_hh = self.start_url + soup.find('a', attrs={'data-qa': 'pager-next'}).attrs["href"]
             except Exception as e:
                 next_butten_hh = None
-        self.save_in_mongo()
+        # self.save_in_mongo()
 
     def get_info_from_element(self, vacance_list):
 
@@ -58,7 +58,12 @@ class HHscraper:
             vacance_data['ссылка на вакансию'] = vacance_link
             vacance_data['источник'] = self.start_url
             self.get_salary(vacance_data, vacance)
-            self.info_vacance.append(vacance_data)
+            # self.info_vacance.append(vacance_data)
+            self.save_without_repeat(vacance_data)
+
+    def save_without_repeat(self, vacance_data):
+        if len(list(self.jobs.find({'ссылка на вакансию': vacance_data['ссылка на вакансию']}))) < 1:
+            self.jobs.insert_one(vacance_data)
 
     def get_salary(self, vacance_data, vacance):
         try:
@@ -78,8 +83,8 @@ class HHscraper:
         except Exception as e:
             vacance_data['зарплата'] = None
 
-    def save_in_mongo(self):
-        self.jobs.insert_many(self.info_vacance)
+    # def save_in_mongo(self):
+    #     # self.jobs.insert_many(self.info_vacance)
 
     # def save_info_vacance(self):
     #     with open("vacancy_hh.json", 'w', encoding="utf-8") as file:
@@ -87,13 +92,13 @@ class HHscraper:
 
 
 class SJscraper:
-    def __init__(self, start_url, headers, params,db_client):
+    def __init__(self, start_url, headers, params, db_client):
         self.start_url = start_url
         self.start_headers = headers
         self.start_params = params
         self.db = db_client['basa_job_sj_hh']
         self.jobs = self.db.jobs
-        self.info_sj_vacance = []
+        # self.info_sj_vacance = []
 
     def get_html_string(self, url, headers='', params=''):
         try:
@@ -120,14 +125,14 @@ class SJscraper:
                 html_string = self.get_html_string(next_butten_sj)
 
             soup = SJscraper.get_dom(html_string)
-            vacance_list = soup.findAll('div',{'class':'iJCa5 f-test-vacancy-item _1fma_ _2nteL'})
+            vacance_list = soup.findAll('div', {'class': '_8RXyd iJCa5 f-test-vacancy-item _1fma_ _2nteL'})
             self.get_info_from_element(vacance_list)
             try:
                 next_butten_sj = main_link_sj + soup.find('a', attrs={'class': 'f-test-button-dalshe'}).attrs["href"]
 
             except Exception as e:
                 next_butten_sj = None
-        self.save_in_mongo()
+        # self.save_in_mongo()
 
     def get_info_from_element(self, vacance_list):
         for vacancy in vacance_list:
@@ -138,7 +143,12 @@ class SJscraper:
             vacancy_sj_data['ссылка на вакансию'] = vacancy_sj_link
             vacancy_sj_data['источник'] = self.start_url
             self.get_salary(vacancy_sj_data, vacancy)
-            self.info_sj_vacance.append(vacancy_sj_data)
+            self.save_without_repeat(vacancy_sj_data)
+            # self.info_sj_vacance.append(vacancy_sj_data)
+
+    def save_without_repeat(self, vacancy_sj_data):
+        if len(list(self.jobs.find({'ссылка на вакансию': vacancy_sj_data['ссылка на вакансию']}))) < 1:
+            self.jobs.insert_one(vacancy_sj_data)
 
     def get_salary(self, vacancy_sj_data, vacancy):
         try:
@@ -184,14 +194,12 @@ class SJscraper:
         except:
             vacancy_sj_data['зарплата'] = None
 
-
-    def save_in_mongo(self):
-        self.jobs.insert_many(self.info_sj_vacance)
+    # def save_in_mongo(self):
+    #     self.jobs.insert_many(self.info_sj_vacance)
 
     # def save_info_vacance(self):
     #     with open("vacancy_sj.json", 'w', encoding="utf-8") as file:
     #         json.dump(self.info_sj_vacance, file, indent=2, ensure_ascii=False)
-
 
 
 if __name__ == '__main__':
@@ -199,10 +207,10 @@ if __name__ == '__main__':
 
     main_link_hh = "https://hh.ru"
     params_main_hh = {"area": "1",
-                   "fromSearchLine": "true",
-                   "st": "searchVacancy",
-                   "text": user_find,
-                   "page": "0"}
+                      "fromSearchLine": "true",
+                      "st": "searchVacancy",
+                      "text": user_find,
+                      "page": "0"}
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36"}
 
@@ -215,8 +223,7 @@ if __name__ == '__main__':
     main_link_sj = "https://www.superjob.ru/"
     params_sj = {"keywords": user_find,
                  "geo%5Bt%5D%5B0%5D": "4"}
-    scraper_sj = SJscraper(main_link_sj, headers, params_sj,db_client)
+    scraper_sj = SJscraper(main_link_sj, headers, params_sj, db_client)
     scraper_sj.run()
     # scraper_sj.save_info_vacance()
-
 
