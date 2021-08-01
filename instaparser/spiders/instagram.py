@@ -56,6 +56,7 @@ class InstagramSpider(scrapy.Spider):
 
         if data["authenticated"]:
             for i in self.user_to_parse:
+
                 yield response.follow(
                     self.template_user_url % i,
                     callback=self.parse_data_followers,
@@ -109,20 +110,34 @@ class InstagramSpider(scrapy.Spider):
             )
         followers = data_f.get('users')
         for follower in followers:
-  #пытаюсь взять id каждого
-            # url_d=f'/{follower["username"]+"/"}'
-            # name = follower["username"]
-            # respon_follower = response.follow(url_d)
-            # user_id = self.fetch_user_id(respon_follower.text, name)
-            # print(1)
+            name = follower["username"]
+            url_d = f"https://instagram.com/{name}/"
 
-            item = InstagramScraperItem(
-                user=username,
-                user_stutus = 'follower',
-                user_name = follower['username'],
-                user_photo=follower['profile_pic_url'],
-                )
-            yield item
+            yield response.follow(
+                url_d,
+                callback=self.id_follower,
+                headers={
+                    "x-ig-app-id": "936619743392459",
+                },
+                cb_kwargs={"username": username,
+                           "namefollow": name,
+                           'user_id': user_id,
+                           'follower':follower
+                           }
+            )
+
+    def id_follower(self, response: HtmlResponse,username,namefollow,user_id,follower):
+        id_follower = self.fetch_user_id(response.text, namefollow)
+        item = InstagramScraperItem(
+            user=username,
+            user_id = user_id,
+            user_stutus='follower',
+            namefollow = namefollow,
+            id_follower = id_follower,
+            user_photo=follower['profile_pic_url'],
+        )
+        yield item
+
 
     def parse_following(self, response: HtmlResponse,username,user_id):
         data_f = response.json()
@@ -143,12 +158,33 @@ class InstagramSpider(scrapy.Spider):
             )
         followings = data_f.get('users')
         for following in followings:
-            item = InstagramScraperItem(
-                user = username,
-                user_stutus='following',
-                user_name = following['username'],
-                user_photo = following['profile_pic_url'])
-            yield item
+            name = following["username"]
+            url_d = f"https://instagram.com/{name}/"
+            yield response.follow(
+                url_d,
+                callback=self.id_following,
+                headers={
+                    "x-ig-app-id": "936619743392459",
+                },
+                cb_kwargs={"username": username,
+                           "namefollowing": name,
+                           'user_id': user_id,
+                           'following': following
+                           }
+            )
+
+
+    def id_following(self, response: HtmlResponse,username,namefollowing,user_id,following):
+        id_following = self.fetch_user_id(response.text, namefollowing)
+        item = InstagramScraperItem(
+            user=username,
+            user_id = user_id,
+            user_stutus='following',
+            namefollow = namefollowing,
+            id_follower = id_following,
+            user_photo=following['profile_pic_url'],
+        )
+        yield item
 
 
 
